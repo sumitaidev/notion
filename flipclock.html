@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notion Flip Clock Widget</title>
+    <style>
+        :root {
+            --bg-color: #ffffff;
+            --card-bg: #f1f1ef;
+            --card-text: #37352f;
+            --card-line: rgba(55, 53, 47, 0.08);
+            --toggle-bg: #ededed;
+            --toggle-text: #787774;
+        }
+
+        /* Detect Notion Dark Mode theme */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-color: #191919;
+                --card-bg: #252525;
+                --card-text: #ffffff;
+                --card-line: rgba(255, 255, 255, 0.08);
+                --toggle-bg: #2f2f2f;
+                --toggle-text: #9b9b9b;
+            }
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            user-select: none;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+            gap: 12px;
+            padding: 10px;
+        }
+
+        .clock-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .flip-card {
+            position: relative;
+            width: 70px;
+            height: 90px;
+            font-size: 54px;
+            font-weight: 700;
+            color: var(--card-text);
+            background: var(--card-bg);
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.08);
+            display: flex;
+            flex-direction: column;
+            perspective: 200px;
+        }
+
+        /* Split Line across the middle of the cards */
+        .flip-card::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            width: 100%;
+            height: 1px;
+            background: var(--card-line);
+            z-index: 5;
+        }
+
+        .card-half {
+            position: absolute;
+            left: 0;
+            width: 100%;
+            height: 50%;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            backface-visibility: hidden;
+        }
+
+        .top {
+            top: 0;
+            align-items: flex-end;
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
+        }
+
+        .top span {
+            transform: translateY(50%);
+        }
+
+        .bottom {
+            bottom: 0;
+            align-items: flex-start;
+            border-bottom-left-radius: 8px;
+            border-bottom-right-radius: 8px;
+        }
+
+        .bottom span {
+            transform: translateY(-50%);
+        }
+
+        /* Separator Colon (:) */
+        .colon {
+            font-size: 40px;
+            font-weight: 700;
+            color: var(--card-text);
+            animation: blink 1s infinite;
+            padding-bottom: 6px;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        /* Flip Animation Classes */
+        .flip .top-flip {
+            transform-origin: bottom;
+            animation: flipTop 0.4s ease-in forwards;
+        }
+
+        .flip .bottom-flip {
+            transform-origin: top;
+            transform: rotateX(90deg);
+            animation: flipBottom 0.4s ease-out 0.4s forwards;
+        }
+
+        @keyframes flipTop {
+            100% { transform: rotateX(-90deg); }
+        }
+
+        @keyframes flipBottom {
+            100% { transform: rotateX(0deg); }
+        }
+
+        /* Format/AM-PM Toggle Options */
+        .controls {
+            display: flex;
+            gap: 8px;
+            font-size: 11px;
+            color: var(--toggle-text);
+            background: var(--toggle-bg);
+            padding: 4px 10px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: opacity 0.2s;
+        }
+
+        .controls:hover {
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="clock-container">
+        <div class="flip-card" id="h1">
+            <div class="card-half top"><span>0</span></div>
+            <div class="card-half bottom"><span>0</span></div>
+        </div>
+        <div class="flip-card" id="h2">
+            <div class="card-half top"><span>0</span></div>
+            <div class="card-half bottom"><span>0</span></div>
+        </div>
+
+        <div class="colon">:</div>
+
+        <div class="flip-card" id="m1">
+            <div class="card-half top"><span>0</span></div>
+            <div class="card-half bottom"><span>0</span></div>
+        </div>
+        <div class="flip-card" id="m2">
+            <div class="card-half top"><span>0</span></div>
+            <div class="card-half bottom"><span>0</span></div>
+        </div>
+    </div>
+
+    <div class="controls" id="formatToggle" onclick="toggleFormat()">
+        <span id="formatLabel">12H</span>
+        <span id="ampmLabel" style="margin-left: 4px; font-weight: bold;"></span>
+    </div>
+
+    <script>
+        let is24Hour = false;
+
+        function toggleFormat() {
+            is24Hour = !is24Hour;
+            document.getElementById('formatLabel').innerText = is24Hour ? '24H' : '12H';
+            updateClock(true); // Immediate update without waiting for the interval tick
+        }
+
+        function flipCard(cardId, newValue) {
+            const card = document.getElementById(cardId);
+            const topHalf = card.querySelector('.top span');
+            const bottomHalf = card.querySelector('.bottom span');
+
+            if (topHalf.innerText === newValue) return;
+
+            // Simple micro-flip logic swapping values seamlessly
+            card.classList.remove('flip');
+            void card.offsetWidth; // Trigger reflow to restart animations seamlessly if configured
+            
+            topHalf.innerText = newValue;
+            bottomHalf.innerText = newValue;
+        }
+
+        function updateClock(force = false) {
+            const now = new Date();
+            let hours = now.getHours();
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+
+            if (!is24Hour) {
+                const ampm = hours >= 12 ? 'PM' : 'AM';
+                document.getElementById('ampmLabel').innerText = ampm;
+                hours = hours % 12;
+                hours = hours ? hours : 12; // conversion of 0 to 12
+            } else {
+                document.getElementById('ampmLabel').innerText = '';
+            }
+
+            const hourStr = String(hours).padStart(2, '0');
+
+            flipCard('h1', hourStr[0]);
+            flipCard('h2', hourStr[1]);
+            flipCard('m1', minutes[0]);
+            flipCard('m2', minutes[1]);
+        }
+
+        // Initialize clock loop
+        setInterval(() => updateClock(), 1000);
+        updateClock();
+    </script>
+</body>
+</html>
