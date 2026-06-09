@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Notion Flip Clock Widget</title>
+    <title>Notion Flip Clock Widget (with Seconds)</title>
     <style>
         :root {
             --bg-color: #ffffff;
@@ -42,26 +42,31 @@
             align-items: center;
             min-height: 100vh;
             overflow: hidden;
-            gap: 12px;
+            gap: 14px;
             padding: 10px;
         }
 
         .clock-container {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
+        }
+
+        .flip-group {
+            display: flex;
+            gap: 4px;
         }
 
         .flip-card {
             position: relative;
-            width: 70px;
-            height: 90px;
-            font-size: 54px;
+            width: 52px;
+            height: 70px;
+            font-size: 42px;
             font-weight: 700;
             color: var(--card-text);
             background: var(--card-bg);
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.08);
+            border-radius: 6px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.06);
             display: flex;
             flex-direction: column;
             perspective: 200px;
@@ -94,8 +99,8 @@
         .top {
             top: 0;
             align-items: flex-end;
-            border-top-left-radius: 8px;
-            border-top-right-radius: 8px;
+            border-top-left-radius: 6px;
+            border-top-right-radius: 6px;
         }
 
         .top span {
@@ -105,8 +110,8 @@
         .bottom {
             bottom: 0;
             align-items: flex-start;
-            border-bottom-left-radius: 8px;
-            border-bottom-right-radius: 8px;
+            border-bottom-left-radius: 6px;
+            border-bottom-right-radius: 6px;
         }
 
         .bottom span {
@@ -115,46 +120,31 @@
 
         /* Separator Colon (:) */
         .colon {
-            font-size: 40px;
+            font-size: 28px;
             font-weight: 700;
             color: var(--card-text);
+            padding-bottom: 4px;
+            margin: 0 2px;
+        }
+
+        /* Optional: Keeps seconds colon steady while hours/minutes flash */
+        .colon.blink {
             animation: blink 1s infinite;
-            padding-bottom: 6px;
         }
 
         @keyframes blink {
             0%, 100% { opacity: 1; }
-            50% { opacity: 0.3; }
-        }
-
-        /* Flip Animation Classes */
-        .flip .top-flip {
-            transform-origin: bottom;
-            animation: flipTop 0.4s ease-in forwards;
-        }
-
-        .flip .bottom-flip {
-            transform-origin: top;
-            transform: rotateX(90deg);
-            animation: flipBottom 0.4s ease-out 0.4s forwards;
-        }
-
-        @keyframes flipTop {
-            100% { transform: rotateX(-90deg); }
-        }
-
-        @keyframes flipBottom {
-            100% { transform: rotateX(0deg); }
+            50% { opacity: 0.4; }
         }
 
         /* Format/AM-PM Toggle Options */
         .controls {
             display: flex;
-            gap: 8px;
+            gap: 4px;
             font-size: 11px;
             color: var(--toggle-text);
             background: var(--toggle-bg);
-            padding: 4px 10px;
+            padding: 4px 12px;
             border-radius: 20px;
             cursor: pointer;
             font-weight: 500;
@@ -169,24 +159,23 @@
 <body>
 
     <div class="clock-container">
-        <div class="flip-card" id="h1">
-            <div class="card-half top"><span>0</span></div>
-            <div class="card-half bottom"><span>0</span></div>
+        <div class="flip-group">
+            <div class="flip-card" id="h1"><div class="card-half top"><span>0</span></div><div class="card-half bottom"><span>0</span></div></div>
+            <div class="flip-card" id="h2"><div class="card-half top"><span>0</span></div><div class="card-half bottom"><span>0</span></div></div>
         </div>
-        <div class="flip-card" id="h2">
-            <div class="card-half top"><span>0</span></div>
-            <div class="card-half bottom"><span>0</span></div>
+
+        <div class="colon blink">:</div>
+
+        <div class="flip-group">
+            <div class="flip-card" id="m1"><div class="card-half top"><span>0</span></div><div class="card-half bottom"><span>0</span></div></div>
+            <div class="flip-card" id="m2"><div class="flip-card" id="m2" style="display:none"></div><div class="card-half top"><span>0</span></div><div class="card-half bottom"><span>0</span></div></div>
         </div>
 
         <div class="colon">:</div>
 
-        <div class="flip-card" id="m1">
-            <div class="card-half top"><span>0</span></div>
-            <div class="card-half bottom"><span>0</span></div>
-        </div>
-        <div class="flip-card" id="m2">
-            <div class="card-half top"><span>0</span></div>
-            <div class="card-half bottom"><span>0</span></div>
+        <div class="flip-group">
+            <div class="flip-card" id="s1"><div class="card-half top"><span>0</span></div><div class="card-half bottom"><span>0</span></div></div>
+            <div class="flip-card" id="s2"><div class="card-half top"><span>0</span></div><div class="card-half bottom"><span>0</span></div></div>
         </div>
     </div>
 
@@ -201,34 +190,33 @@
         function toggleFormat() {
             is24Hour = !is24Hour;
             document.getElementById('formatLabel').innerText = is24Hour ? '24H' : '12H';
-            updateClock(true); // Immediate update without waiting for the interval tick
+            updateClock();
         }
 
         function flipCard(cardId, newValue) {
             const card = document.getElementById(cardId);
+            if (!card) return;
+            
             const topHalf = card.querySelector('.top span');
             const bottomHalf = card.querySelector('.bottom span');
 
             if (topHalf.innerText === newValue) return;
 
-            // Simple micro-flip logic swapping values seamlessly
-            card.classList.remove('flip');
-            void card.offsetWidth; // Trigger reflow to restart animations seamlessly if configured
-            
             topHalf.innerText = newValue;
             bottomHalf.innerText = newValue;
         }
 
-        function updateClock(force = false) {
+        function updateClock() {
             const now = new Date();
             let hours = now.getHours();
             const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
 
             if (!is24Hour) {
                 const ampm = hours >= 12 ? 'PM' : 'AM';
                 document.getElementById('ampmLabel').innerText = ampm;
                 hours = hours % 12;
-                hours = hours ? hours : 12; // conversion of 0 to 12
+                hours = hours ? hours : 12; 
             } else {
                 document.getElementById('ampmLabel').innerText = '';
             }
@@ -239,10 +227,12 @@
             flipCard('h2', hourStr[1]);
             flipCard('m1', minutes[0]);
             flipCard('m2', minutes[1]);
+            flipCard('s1', seconds[0]);
+            flipCard('s2', seconds[1]);
         }
 
-        // Initialize clock loop
-        setInterval(() => updateClock(), 1000);
+        // Run clock update loop rapidly for smooth handling across second shifts
+        setInterval(updateClock, 200);
         updateClock();
     </script>
 </body>
