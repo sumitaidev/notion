@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notion Weather Widget</title>
+    <style>
+        :root {
+            --bg-color: #ffffff;
+            --text-main: #37352f;
+            --text-muted: #787774;
+            --border-color: #ededed;
+            --card-bg: #fbfbfa;
+            --accent-color: #2eaadc;
+        }
+
+        /* Notion Dark Mode styling via media query or embed compatibility */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-color: #191919;
+                --text-main: #rgba(255, 255, 255, 0.9);
+                --text-muted: #9b9b9b;
+                --border-color: #2f2f2f;
+                --card-bg: #202020;
+                --accent-color: #529cca;
+            }
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif, "Segoe UI Emoji";
+        }
+
+        body {
+            background-color: var/(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 10px;
+        }
+
+        .widget-container {
+            width: 100%;
+            max-width: 330px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .search-box {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 14px;
+        }
+
+        .search-box input {
+            flex: 1;
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-size: 13px;
+            outline: none;
+        }
+
+        .search-box input:focus {
+            border-color: var(--accent-color);
+        }
+
+        .search-box button {
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .search-box button:hover {
+            background: var(--border-color);
+        }
+
+        .weather-info {
+            text-align: center;
+        }
+
+        .location-name {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-main);
+            margin-bottom: 4px;
+        }
+
+        .weather-desc {
+            font-size: 12px;
+            color: var(--text-muted);
+            text-transform: capitalize;
+            margin-bottom: 10px;
+        }
+
+        .main-stats {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .weather-icon {
+            font-size: 36px;
+        }
+
+        .temp-display {
+            font-size: 32px;
+            font-weight: 500;
+            letter-spacing: -1px;
+        }
+
+        .details-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            border-top: 1px solid var(--border-color);
+            padding-top: 12px;
+            font-size: 12px;
+            color: var(--text-muted);
+            text-align: left;
+        }
+
+        .details-grid span strong {
+            color: var(--text-main);
+        }
+
+        .error-msg {
+            color: #eb5757;
+            font-size: 12px;
+            margin-top: 8px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="widget-container">
+        <div class="search-box">
+            <input type="text" id="cityInput" placeholder="Enter city..." value="London">
+            <button onclick="getWeather()">Search</button>
+        </div>
+        
+        <div class="weather-info">
+            <div class="location-name" id="location">Loading...</div>
+            <div class="weather-desc" id="description">--</div>
+            
+            <div class="main-stats">
+                <div class="weather-icon" id="icon">☀️</div>
+                <div class="temp-display" id="temperature">--°C</div>
+            </div>
+
+            <div class="details-grid">
+                <div>Wind: <span id="wind">-- km/h</span></div>
+                <div>Humidity: <span id="humidity">--%</span></div>
+            </div>
+            
+            <div class="error-msg" id="errorMsg">City not found. Try again.</div>
+        </div>
+    </div>
+
+    <script>
+        // Mapping Open-Meteo WMO Codes to Emojis and Descriptions
+        const weatherCodes = {
+            0: { desc: "Clear sky", icon: "☀️" },
+            1: { desc: "Mainly clear", icon: "🌤️" },
+            2: { desc: "Partly cloudy", icon: "⛅" },
+            3: { desc: "Overcast", icon: "☁️" },
+            45: { desc: "Fog", icon: "🌫️" },
+            48: { desc: "Depositing rime fog", icon: "🌫️" },
+            51: { desc: "Light drizzle", icon: "🌧️" },
+            61: { desc: "Light rain", icon: "🌧️" },
+            63: { desc: "Moderate rain", icon: "🌧️" },
+            65: { desc: "Heavy rain", icon: "🌧️" },
+            71: { desc: "Light snow", icon: "🌨️" },
+            73: { desc: "Moderate snow", icon: "🌨️" },
+            75: { desc: "Heavy snow", icon: "🌨️" },
+            95: { desc: "Thunderstorm", icon: "🌩️" }
+        };
+
+        async function getWeather() {
+            const city = document.getElementById('cityInput').value;
+            const errorMsg = document.getElementById('errorMsg');
+            errorMsg.style.display = 'none';
+
+            try {
+                // Step 1: Geocoding API to get Lat/Lon from City Name
+                const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=en&format=json`;
+                const geoRes = await fetch(geoUrl);
+                const geoData = await geoRes.json();
+
+                if (!geoData.results || geoData.results.length === 0) {
+                    throw new Error("Location not found");
+                }
+
+                const { latitude, longitude, name, country } = geoData.results[0];
+
+                // Step 2: Weather Forecast API
+                const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m`;
+                const weatherRes = await fetch(weatherUrl);
+                const weatherData = await weatherRes.json();
+
+                const current = weatherData.current;
+                const code = current.weather_code;
+                
+                // Determine icon and description
+                const weatherState = weatherCodes[code] || { desc: "Unrecognized", icon: "✨" };
+
+                // Update UI
+                document.getElementById('location').innerText = `${name}, ${country}`;
+                document.getElementById('description').innerText = weatherState.desc;
+                document.getElementById('temperature').innerText = `${Math.round(current.temperature_2m)}°C`;
+                document.getElementById('icon').innerText = weatherState.icon;
+                document.getElementById('wind').innerText = `${current.wind_speed_10m} km/h`;
+                document.getElementById('humidity').innerText = `${current.relative_humidity_2m}%`;
+
+            } catch (error) {
+                errorMsg.style.display = 'block';
+                console.error(error);
+            }
+        }
+
+        // Initialize on page load
+        window.onload = getWeather;
+    </script>
+</body>
+</html>
