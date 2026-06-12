@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notion Productivity Dock</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+    <style>
+        :root {
+            --bg-color: #ffffff;
+            --btn-bg: #fbfbfa;
+            --btn-border: #ededed;
+            --btn-hover: #f1f1ef;
+            --text-color: #37352f;
+            --text-muted: #787774;
+            --mail-color: #ea4335;
+            --calendar-color: #4285f4;
+            --keep-color: #fbbc05;
+            --tasks-color: #1a73e8;
+        }
+
+        /* Notion Dark Mode Theme Support */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-color: #191919;
+                --btn-bg: #202020;
+                --btn-border: #2f2f2f;
+                --btn-hover: #2a2a2a;
+                --text-color: rgba(255, 255, 255, 0.9);
+                --text-muted: #9b9b9b;
+            }
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            user-select: none;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 10px;
+            overflow: hidden;
+        }
+
+        .dock-container {
+            display: flex;
+            gap: 12px;
+            width: 100%;
+            max-width: 450px;
+            justify-content: center;
+        }
+
+        .dock-btn {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            height: 72px;
+            background-color: var(--btn-bg);
+            border: 1px solid var(--btn-border);
+            border-radius: 10px;
+            color: var(--text-color);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+
+        .dock-btn:hover {
+            background-color: var(--btn-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .dock-btn:active {
+            transform: translateY(0);
+        }
+
+        .dock-btn .material-symbols-outined {
+            font-size: 24px;
+        }
+
+        /* Custom subtle colors for icons */
+        .dock-btn.mail { --icon-color: var(--mail-color); }
+        .dock-btn.calendar { --icon-color: var(--calendar-color); }
+        .dock-btn.keep { --icon-color: var(--keep-color); }
+        .dock-btn.tasks { --icon-color: var(--tasks-color); }
+
+        .dock-btn .icon-wrapper {
+            color: var(--icon-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-label {
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--text-muted);
+        }
+
+        .hint-text {
+            font-size: 10px;
+            color: var(--text-muted);
+            margin-top: 8px;
+            opacity: 0.6;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="dock-container">
+        <div class="dock-btn mail" id="btn-mail">
+            <div class="icon-wrapper"><span class="material-symbols-outlined">mail</span></div>
+            <span class="btn-label">Mail</span>
+        </div>
+
+        <div class="dock-btn calendar" id="btn-calendar">
+            <div class="icon-wrapper"><span class="material-symbols-outlined">calendar_month</span></div>
+            <span class="btn-label">Calendar</span>
+        </div>
+
+        <div class="dock-btn keep" id="btn-keep">
+            <div class="icon-wrapper"><span class="material-symbols-outlined">lightbulb</span></div>
+            <span class="btn-label">Keep</span>
+        </div>
+
+        <div class="dock-btn tasks" id="btn-tasks">
+            <div class="icon-wrapper"><span class="material-symbols-outlined">task_alt</span></div>
+            <span class="btn-label">Tasks</span>
+        </div>
+    </div>
+
+    <div class="hint-text">1-Click: Home | Double-Click: Capture New</div>
+
+    <script>
+        // Setup direct configurations for single & double clicks
+        const links = {
+            'btn-mail': {
+                single: 'https://mail.google.com',
+                double: 'https://mail.google.com/mail/u/0/#inbox?compose=new'
+            },
+            'btn-calendar': {
+                single: 'https://calendar.google.com',
+                double: 'https://calendar.google.com/calendar/u/0/r/eventedit'
+            },
+            'btn-keep': {
+                single: 'https://keep.google.com',
+                double: 'https://keep.google.com/#create'
+            },
+            'btn-tasks': {
+                single: 'https://assistant.google.com/tasks', 
+                double: 'https://assistant.google.com/tasks' // Fallback (Tasks natively opens sidebar in ecosystem)
+            }
+        };
+
+        // Click Handler preventing single-click from triggering during double-clicks
+        Object.keys(links).forEach(id => {
+            const btn = document.getElementById(id);
+            let clickTimer = null;
+
+            btn.addEventListener('click', () => {
+                if (clickTimer !== null) return; // Skip if a double click is processing
+
+                clickTimer = setTimeout(() => {
+                    window.open(links[id].single, '_blank');
+                    clickTimer = null;
+                }, 250); // Delay window to listen for second tap
+            });
+
+            btn.addEventListener('dblclick', () => {
+                clearTimeout(clickTimer);
+                clickTimer = null;
+                window.open(links[id].double, '_blank');
+            });
+        });
+    </script>
+</body>
+</html>
