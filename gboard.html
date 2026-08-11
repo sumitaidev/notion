@@ -7,16 +7,23 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
     <style>
         :root {
+            /* General Theme Variables */
             --bg-color: #ffffff;
             --btn-bg: #fbfbfa;
             --btn-border: #ededed;
             --btn-hover: #f1f1ef;
             --text-color: #37352f;
             --text-muted: #787774;
+            
+            /* Icon Brand Colors */
             --mail-color: #ea4335;
             --calendar-color: #4285f4;
             --keep-color: #fbbc05;
             --tasks-color: #1a73e8;
+            --notion-color: #000000;
+            --gemini-color: #8e62f0;
+            --chatgpt-color: #10a37f;
+            --drive-color: #34a853;
         }
 
         /* Notion Dark Mode Theme Support */
@@ -28,6 +35,8 @@
                 --btn-hover: #2a2a2a;
                 --text-color: rgba(255, 255, 255, 0.9);
                 --text-muted: #9b9b9b;
+                --notion-color: #ffffff;
+                --gemini-color: #a482f3;
             }
         }
 
@@ -46,20 +55,21 @@
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            padding: 10px;
+            padding: 20px;
             overflow: hidden;
         }
 
+        /* Updated to a Grid to handle 8 items beautifully */
         .dock-container {
-            display: flex;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
             gap: 12px;
             width: 100%;
-            max-width: 450px;
+            max-width: 400px;
             justify-content: center;
         }
 
         .dock-btn {
-            flex: 1;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -85,11 +95,15 @@
             transform: translateY(0);
         }
 
-        .dock-btn .material-symbols-outined {
+        .dock-btn .material-symbols-outlined {
             font-size: 24px;
         }
 
-        /* Custom subtle colors for icons */
+        /* Applying Custom Icon Colors */
+        .dock-btn.notion { --icon-color: var(--notion-color); }
+        .dock-btn.gemini { --icon-color: var(--gemini-color); }
+        .dock-btn.chatgpt { --icon-color: var(--chatgpt-color); }
+        .dock-btn.drive { --icon-color: var(--drive-color); }
         .dock-btn.mail { --icon-color: var(--mail-color); }
         .dock-btn.calendar { --icon-color: var(--calendar-color); }
         .dock-btn.keep { --icon-color: var(--keep-color); }
@@ -111,7 +125,7 @@
         .hint-text {
             font-size: 10px;
             color: var(--text-muted);
-            margin-top: 8px;
+            margin-top: 16px;
             opacity: 0.6;
         }
     </style>
@@ -119,6 +133,28 @@
 <body>
 
     <div class="dock-container">
+        <!-- New Tools -->
+        <div class="dock-btn notion" id="btn-notion">
+            <div class="icon-wrapper"><span class="material-symbols-outlined">description</span></div>
+            <span class="btn-label">Notion</span>
+        </div>
+
+        <div class="dock-btn gemini" id="btn-gemini">
+            <div class="icon-wrapper"><span class="material-symbols-outlined">auto_awesome</span></div>
+            <span class="btn-label">Gemini</span>
+        </div>
+
+        <div class="dock-btn chatgpt" id="btn-chatgpt">
+            <div class="icon-wrapper"><span class="material-symbols-outlined">smart_toy</span></div>
+            <span class="btn-label">ChatGPT</span>
+        </div>
+
+        <div class="dock-btn drive" id="btn-drive">
+            <div class="icon-wrapper"><span class="material-symbols-outlined">add_to_drive</span></div>
+            <span class="btn-label">Drive</span>
+        </div>
+
+        <!-- Original Tools -->
         <div class="dock-btn mail" id="btn-mail">
             <div class="icon-wrapper"><span class="material-symbols-outlined">mail</span></div>
             <span class="btn-label">Mail</span>
@@ -145,6 +181,22 @@
     <script>
         // Setup direct configurations for single & double clicks
         const links = {
+            'btn-notion': {
+                single: 'https://www.notion.so',
+                double: 'https://www.notion.so/new' // Jumps straight to creating a new page
+            },
+            'btn-gemini': {
+                single: 'https://gemini.google.com',
+                double: 'https://gemini.google.com/app'
+            },
+            'btn-chatgpt': {
+                single: 'https://chatgpt.com',
+                double: 'https://chatgpt.com/?model=gpt-4o' // Opens a fresh chat explicitly 
+            },
+            'btn-drive': {
+                single: 'https://drive.google.com',
+                double: 'https://drive.google.com/drive/u/0/my-drive'
+            },
             'btn-mail': {
                 single: 'https://mail.google.com',
                 double: 'https://mail.google.com/mail/u/0/#inbox?compose=new'
@@ -159,13 +211,14 @@
             },
             'btn-tasks': {
                 single: 'https://assistant.google.com/tasks', 
-                double: 'https://assistant.google.com/tasks' // Fallback (Tasks natively opens sidebar in ecosystem)
+                double: 'https://assistant.google.com/tasks'
             }
         };
 
         // Click Handler preventing single-click from triggering during double-clicks
         Object.keys(links).forEach(id => {
             const btn = document.getElementById(id);
+            if (!btn) return; // Safeguard if button is removed
             let clickTimer = null;
 
             btn.addEventListener('click', () => {
